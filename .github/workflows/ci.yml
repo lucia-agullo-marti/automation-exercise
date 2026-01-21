@@ -1,0 +1,68 @@
+name: SSE CI/CD
+
+on:
+  push:
+
+jobs:
+  style_check:
+    name: style_check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install black
+        run: pip install black
+      - name: Verify black
+        run: black --check .
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install numpy matplotlib pytest coverage
+      - name: Run tests with coverage
+        run: coverage run -m pytest -v
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: .coverage
+          include-hidden-files: true
+          retention-days: 1
+
+  coverage_report:
+    name: coverage_report
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install coverage
+        run: pip install coverage
+      - name: Download coverage data
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: .
+      - name: Coverage report in terminal + XML
+        run: |
+          coverage report
+          coverage xml -o coverage.xml
+      - name: Upload xml report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-xml
+          path: coverage.xml
+          retention-days: 14
